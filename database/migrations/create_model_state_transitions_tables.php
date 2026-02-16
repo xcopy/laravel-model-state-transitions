@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unique(['model_type', 'from_state', 'to_state']);
         });
 
-        Schema::create($config['transition_history_table'], function (Blueprint $table) {
+        Schema::create($config['transition_history_table'], function (Blueprint $table) use ($config) {
             $table->id();
             $table->morphs('model');
             $table->string('from_state');
@@ -28,6 +28,9 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->json('custom_properties')->nullable();
             $table->timestamps();
+            $table->foreignId('created_by')
+                ->nullable()
+                ->constrained((new $config['user_model'])->getTable());
         });
 
         Schema::create($config['pivot_table'], function (Blueprint $table) use ($config) {

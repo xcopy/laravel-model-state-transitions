@@ -5,6 +5,7 @@ namespace Jenishev\Laravel\ModelStateTransitions\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateAttributes;
+use RichanFongdasen\EloquentBlameable\BlameableTrait;
 
 /**
  * Represents a recorded state transition in the audit trail.
@@ -15,6 +16,7 @@ use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateAttributes;
  */
 class TransitionHistory extends Model
 {
+    use BlameableTrait;
     use HasStateAttributes;
 
     /**
@@ -27,6 +29,7 @@ class TransitionHistory extends Model
         'to_state',
         'description',
         'custom_properties',
+        'created_by',
     ];
 
     /**
@@ -37,6 +40,19 @@ class TransitionHistory extends Model
         parent::__construct($attributes);
 
         $this->table = config('model-state-transitions.transition_history_table');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function blameable(): array
+    {
+        return [
+            'user' => config('model-state-transitions.user_model'),
+            'createdBy' => 'created_by',
+            'updatedBy' => null,
+            'deletedBy' => null,
+        ];
     }
 
     /**

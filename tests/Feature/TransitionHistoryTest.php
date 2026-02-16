@@ -2,9 +2,11 @@
 
 namespace Jenishev\Laravel\ModelStateTransitions\Tests\Feature;
 
+use Illuminate\Support\Carbon;
 use Jenishev\Laravel\ModelStateTransitions\Models\TransitionHistory;
 use Workbench\App\Enums\PaymentStateEnum;
 use Workbench\App\Models\Payment;
+use Workbench\App\Models\User;
 
 beforeEach(function () {
     $this->payment = Payment::create([
@@ -225,7 +227,7 @@ it('stores timestamps correctly', function () {
 
     expect($history->created_at)->not->toBeNull();
     expect($history->updated_at)->not->toBeNull();
-    expect($history->created_at)->toBeInstanceOf(\Illuminate\Support\Carbon::class);
+    expect($history->created_at)->toBeInstanceOf(Carbon::class);
 })->group('history');
 
 it('can store complex custom_properties', function () {
@@ -252,4 +254,22 @@ it('can store complex custom_properties', function () {
     expect($retrieved->custom_properties)->toBe($complexProperties);
     expect($retrieved->custom_properties['metadata']['ip_address'])->toBe('192.168.1.1');
     expect($retrieved->custom_properties['tags'])->toBe(['urgent', 'vip']);
+})->group('history');
+
+it('stores created_by for history', function () {
+    $user = User::create([
+        'name' => 'Jane Doe',
+        'email' => 'jane@example.com',
+    ]);
+
+    $this->actingAs($user);
+
+    $history = TransitionHistory::create([
+        'model_type' => Payment::class,
+        'model_id' => $this->payment->id,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    expect($history->created_by)->toBe($user->id);
 })->group('history');

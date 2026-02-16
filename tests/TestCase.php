@@ -4,6 +4,7 @@ namespace Jenishev\Laravel\ModelStateTransitions\Tests;
 
 use Jenishev\Laravel\ModelStateTransitions\ModelStateTransitionsServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Workbench\App\Models\User;
 
 class TestCase extends Orchestra
 {
@@ -24,6 +25,7 @@ class TestCase extends Orchestra
 
     public function getEnvironmentSetUp($app): void
     {
+        config()->set('model-state-transitions.user_model', User::class);
         config()->set('database.default', 'testing');
         config()->set('database.connections.testing', [
             'driver' => 'sqlite',
