@@ -2,7 +2,9 @@
 
 namespace Jenishev\Laravel\ModelStateTransitions\Tests\Feature;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
+use InvalidArgumentException;
 use Jenishev\Laravel\ModelStateTransitions\Models\Transition;
 use Workbench\App\Enums\PaymentStateEnum;
 use Workbench\App\Models\Payment;
@@ -77,3 +79,87 @@ it('can use real Payment model with transitions trait', function () {
     expect($payment->state)->toBe(PaymentStateEnum::Pending);
     expect(Payment::resolveStateEnum())->toBe(PaymentStateEnum::class);
 })->group('transitions');
+
+// AsModelClass cast validation tests
+it('validates that model_type implements HasStateTransitions interface', function () {
+    $transition = new Transition;
+    $transition->model_type = Payment::class;
+    $transition->from_state = PaymentStateEnum::Pending;
+    $transition->to_state = PaymentStateEnum::Approved;
+    $transition->save();
+
+    expect($transition->model_type)->toBe(Payment::class);
+})->group('transitions', 'validation');
+
+it('throws exception for model_type that does not implement HasStateTransitions', function () {
+    $transition = new Transition;
+    $transition->model_type = Model::class;
+    $transition->from_state = PaymentStateEnum::Pending;
+    $transition->to_state = PaymentStateEnum::Approved;
+    $transition->save();
+})->throws(InvalidArgumentException::class)->group('transitions', 'validation');
+
+it('throws exception for non-existent class in model_type', function () {
+    $transition = new Transition;
+    $transition->model_type = 'NonExistentClass';
+    $transition->from_state = PaymentStateEnum::Pending;
+    $transition->to_state = PaymentStateEnum::Approved;
+    $transition->save();
+})->throws(InvalidArgumentException::class)->group('transitions', 'validation');
+
+it('throws exception for non-string model_type', function () {
+    $transition = new Transition;
+    $transition->model_type = 123;
+})->throws(InvalidArgumentException::class)->group('transitions', 'validation');
+
+it('throws exception for array model_type', function () {
+    $transition = new Transition;
+    $transition->model_type = [Payment::class];
+})->throws(InvalidArgumentException::class)->group('transitions', 'validation');
+
+it('handles null model_type', function () {
+    $transition = new Transition;
+    $transition->model_type = null;
+    $transition->from_state = PaymentStateEnum::Pending;
+    $transition->to_state = PaymentStateEnum::Approved;
+
+    expect($transition->model_type)->toBeNull();
+})->group('transitions', 'validation');
+
+it('validates model_type on retrieval from database', function () {
+    // Create a transition with valid model_type
+    $transition = Transition::create([
+        'model_type' => Payment::class,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    // Retrieve it
+    $retrieved = Transition::find($transition->id);
+
+    expect($retrieved->model_type)->toBe(Payment::class);
+})->group('transitions', 'validation');
+
+it('preserves fully qualified class names', function () {
+    $transition = Transition::create([
+        'model_type' => Payment::class,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    expect($transition->model_type)
+        ->toBe(Payment::class)
+        ->and($transition->model_type)->not->toStartWith('\\\\');
+})->group('transitions', 'validation');
+
+it('stores model_type as string in database', function () {
+    $transition = Transition::create([
+        'model_type' => Payment::class,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    expect($transition->getAttributes()['model_type'])
+        ->toBe(Payment::class)
+        ->and($transition->getAttributes()['model_type'])->toBeString();
+})->group('transitions', 'validation');

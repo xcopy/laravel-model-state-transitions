@@ -2,7 +2,9 @@
 
 namespace Jenishev\Laravel\ModelStateTransitions\Tests\Feature;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 use Jenishev\Laravel\ModelStateTransitions\Models\TransitionHistory;
 use Workbench\App\Enums\PaymentStateEnum;
 use Workbench\App\Models\Payment;
@@ -273,3 +275,109 @@ it('stores created_by for history', function () {
 
     expect($history->created_by)->toBe($user->id);
 })->group('history');
+
+// AsModelClass cast validation tests for TransitionHistory
+it('validates that model_type implements HasStateTransitions interface', function () {
+    $history = new TransitionHistory;
+    $history->model_type = Payment::class;
+    $history->model_id = $this->payment->id;
+    $history->from_state = PaymentStateEnum::Pending;
+    $history->to_state = PaymentStateEnum::Approved;
+    $history->save();
+
+    expect($history->model_type)->toBe(Payment::class);
+})->group('history', 'validation');
+
+it('throws exception for model_type that does not implement HasStateTransitions', function () {
+    $history = new TransitionHistory;
+    $history->model_type = Model::class;
+    $history->model_id = 1;
+    $history->from_state = PaymentStateEnum::Pending;
+    $history->to_state = PaymentStateEnum::Approved;
+    $history->save();
+})->throws(InvalidArgumentException::class)->group('history', 'validation');
+
+it('throws exception for non-existent class in model_type', function () {
+    $history = new TransitionHistory;
+    $history->model_type = 'NonExistentClass';
+    $history->model_id = 1;
+    $history->from_state = PaymentStateEnum::Pending;
+    $history->to_state = PaymentStateEnum::Approved;
+    $history->save();
+})->throws(InvalidArgumentException::class)->group('history', 'validation');
+
+it('throws exception for non-string model_type', function () {
+    $history = new TransitionHistory;
+    $history->model_type = 123;
+})->throws(InvalidArgumentException::class)->group('history', 'validation');
+
+it('throws exception for array model_type', function () {
+    $history = new TransitionHistory;
+    $history->model_type = [Payment::class];
+})->throws(InvalidArgumentException::class)->group('history', 'validation');
+
+it('handles null model_type', function () {
+    $history = new TransitionHistory;
+    $history->model_type = null;
+    $history->model_id = 1;
+    $history->from_state = PaymentStateEnum::Pending;
+    $history->to_state = PaymentStateEnum::Approved;
+
+    expect($history->model_type)->toBeNull();
+})->group('history', 'validation');
+
+it('validates model_type on retrieval from database', function () {
+    $history = TransitionHistory::create([
+        'model_type' => Payment::class,
+        'model_id' => $this->payment->id,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    $retrieved = TransitionHistory::find($history->id);
+
+    expect($retrieved->model_type)->toBe(Payment::class);
+})->group('history', 'validation');
+
+it('preserves fully qualified class names in history', function () {
+    $history = TransitionHistory::create([
+        'model_type' => Payment::class,
+        'model_id' => $this->payment->id,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    expect($history->model_type)
+        ->toBe(Payment::class)
+        ->and($history->model_type)->not->toStartWith('\\\\');
+})->group('history', 'validation');
+
+it('stores model_type as string in database', function () {
+    $history = TransitionHistory::create([
+        'model_type' => Payment::class,
+        'model_id' => $this->payment->id,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    expect($history->getAttributes()['model_type'])
+        ->toBe(Payment::class)
+        ->and($history->getAttributes()['model_type'])->toBeString();
+})->group('history', 'validation');
+
+it('ensures model_type matches morphTo relationship', function () {
+    $history = TransitionHistory::create([
+        'model_type' => Payment::class,
+        'model_id' => $this->payment->id,
+        'from_state' => PaymentStateEnum::Pending,
+        'to_state' => PaymentStateEnum::Approved,
+    ]);
+
+    $relatedModel = $history->model;
+
+    expect($relatedModel)
+        ->toBeInstanceOf(Payment::class)
+        ->and($relatedModel->id)
+        ->toBe($this->payment->id)
+        ->and(get_class($relatedModel))->toBe($history->model_type);
+})->group('history', 'validation');

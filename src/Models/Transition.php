@@ -5,6 +5,8 @@ namespace Jenishev\Laravel\ModelStateTransitions\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateAttributes;
+use Jenishev\Laravel\ModelStateTransitions\Contracts\HasStateTransitions;
+use Jenishev\Laravel\Support\Eloquent\Casts\AsModelClass;
 
 /**
  * Represents a state transition definition.
@@ -42,7 +44,7 @@ class Transition extends Model
     protected function casts(): array
     {
         return [
-            'model_type' => 'string', // todo
+            'model_type' => AsModelClass::of(HasStateTransitions::class),
         ];
     }
 
