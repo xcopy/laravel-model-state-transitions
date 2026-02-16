@@ -26,12 +26,6 @@ it('can create a transition with real model class', function () {
     expect($transition->to_state)->toBe(PaymentStateEnum::Approved);
 })->group('transitions');
 
-it('can get foreign key name using getForeignKeyName', function () {
-    $fk = Transition::getForeignKeyName();
-
-    expect($fk)->toBe('transition_id');
-})->group('transitions');
-
 it('validates transition creation with real model', function () {
     $transition = Transition::create([
         'model_type' => $this->modelClass,

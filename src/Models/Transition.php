@@ -47,14 +47,6 @@ class Transition extends Model
     }
 
     /**
-     * Get the foreign key name derived from the transitions table name.
-     */
-    public static function getForeignKeyName(): string
-    {
-        return (new static)->getForeignKey();
-    }
-
-    /**
      * Get the users that can perform this transition.
      *
      * This establishes a polymorphic many-to-many relationship with the
@@ -78,7 +70,7 @@ class Transition extends Model
             related: $config['user_model'],
             name: 'model',
             table: $config['pivot_table'],
-            foreignPivotKey: self::getForeignKeyName()
+            foreignPivotKey: 'transition_id'
         );
     }
 
@@ -106,7 +98,7 @@ class Transition extends Model
             related: $config['role_model'],
             name: 'model',
             table: $config['pivot_table'],
-            foreignPivotKey: self::getForeignKeyName()
+            foreignPivotKey: 'transition_id'
         );
     }
 }
