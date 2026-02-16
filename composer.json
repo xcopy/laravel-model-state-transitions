@@ -1,7 +1,9 @@
 {
     "name": "xcopy/laravel-model-state-transitions",
-    "description": "This is my package laravel-model-state-transitions",
+    "description": "Manage state transitions for your Laravel models with role-based access control and automatic history tracking.",
     "keywords": [
+        "php",
+        "laravel",
         "state",
         "transition"
     ],
