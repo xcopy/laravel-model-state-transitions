@@ -93,7 +93,7 @@ return [
     |
     */
 
-    'role_model' => App\Models\Role::class,
+    'role_model' => 'App\Models\Role',
 
     /*
     |--------------------------------------------------------------------------
@@ -106,6 +106,6 @@ return [
     |
     */
 
-    'user_model' => App\Models\User::class,
+    'user_model' => 'App\Models\User',
 
 ];

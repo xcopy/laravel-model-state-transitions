@@ -15,6 +15,8 @@ use RichanFongdasen\EloquentBlameable\BlameableTrait;
  * This model stores the history of all state transitions that have occurred
  * on transitionable models. Each record captures the previous state, new state,
  * timestamp, optional description, and custom properties for auditing purposes.
+ *
+ * @property string $model_type
  */
 class TransitionHistory extends Model
 {

@@ -33,8 +33,6 @@ trait HasStateAttributes
      *
      * This accessor enables type-safe state handling, preventing invalid
      * state values and providing IDE autocompletion for available states.
-     *
-     * @return Attribute<BackedEnum|null, BackedEnum|string>
      */
     protected function fromState(): Attribute
     {
@@ -50,8 +48,6 @@ trait HasStateAttributes
      *
      * This accessor enables type-safe state handling, preventing invalid
      * state values and providing IDE autocompletion for available states.
-     *
-     * @return Attribute<BackedEnum|null, BackedEnum|string>
      */
     protected function toState(): Attribute
     {
@@ -69,13 +65,11 @@ trait HasStateAttributes
      * The getter converts database strings to enum instances, returning null
      * for blank values. The setter accepts either enum instances or strings,
      * automatically extracting the value from enum instances.
-     *
-     * @return Attribute<BackedEnum|null, BackedEnum|string>
      */
     private function makeStateAttribute(): Attribute
     {
         return Attribute::make(
-            get: function ($value): ?BackedEnum {
+            get: function ($value) {
                 if (blank($value)) {
                     return null;
                 }
@@ -85,7 +79,7 @@ trait HasStateAttributes
 
                 return $stateEnum::from($value);
             },
-            set: fn ($value): string => $value instanceof BackedEnum ? $value->value : $value
+            set: fn ($value) => $value instanceof BackedEnum ? $value->value : $value
         );
     }
 }

@@ -14,6 +14,8 @@ use Jenishev\Laravel\Support\Eloquent\Casts\AsModelClass;
  * This model stores the available state transitions for various models,
  * defining valid state changes (from_state -> to_state) and which users
  * or roles are authorized to perform each transition.
+ *
+ * @property string $model_type
  */
 class Transition extends Model
 {
