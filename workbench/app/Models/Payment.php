@@ -14,6 +14,7 @@ class Payment extends Model implements HasStateTransitionsContract
     protected $fillable = ['state', 'amount'];
 
     protected $casts = [
+        'state' => PaymentStateEnum::class,
         'amount' => 'decimal:2',
     ];
 

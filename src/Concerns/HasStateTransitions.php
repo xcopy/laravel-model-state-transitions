@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Arr;
 use RuntimeException;
 
 /**
@@ -14,25 +15,126 @@ use RuntimeException;
  *
  * This trait adds the ability to track state changes and query available
  * transitions based on the current state and user permissions. It integrates
- * with the role-based access control system to determine which transitions
- * a user can perform.
+ * with the role-based access control system to determine which transitions a user can perform.
  *
  * Example usage:
  * ```php
- * class Order extends Model implements HasStateTransitions
+ * use Jenishev\Laravel\ModelStateTransitions\Contracts\HasStateTransitions as HasStateTransitionsContract;
+ * use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateTransitions as HasStateTransitionsConcern;
+ * class Order extends Model implements HasStateTransitionsContract
  * {
- *     use \Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateTransitions;
+ *     use HasStateTransitionsConcern;
  * }
  *
- * // Get available transitions for the current user
- * $order->transitions()->get();
+ * // Simple state transition
+ * $order->state = OrderStateEnum::Approved;
+ * $order->save();
  *
- * // Get transition history
- * $order->transitionHistory;
+ * // Transition with description and custom properties
+ * $order->stateTransitionTo(
+ *     state: OrderStateEnum::Approved,
+ *     description: 'Approved by manager',
+ *     custom_properties: [...]
+ * );
+ *
+ * // Or set metadata before updating
+ * $order->setTransitionMetadata(
+ *     description: 'Rejected due to fraud',
+ *     custom_properties: [...]
+ * );
+ * $order->state = OrderStateEnum::Rejected;
+ * $order->save();
  * ```
  */
 trait HasStateTransitions
 {
+    /**
+     * Transition metadata to be saved with the history record.
+     *
+     * @var array{description?: string|null, custom_properties?: array|null}
+     */
+    protected array $transitionMetadata = [];
+
+    /**
+     * Boot the HasStateTransitions trait for a model.
+     */
+    public static function bootHasStateTransitions(): void
+    {
+        static::updated(function (self $model) {
+            $state_column = config('model-state-transitions.transitionable_state_column');
+
+            $description = Arr::get($model->transitionMetadata, 'description');
+            $custom_properties = Arr::get($model->transitionMetadata, 'custom_properties');
+
+            if (
+                $model->wasChanged($state_column) ||
+                $description ||
+                $custom_properties
+            ) {
+                $model->transitionHistory()->create([
+                    'from_state' => $model->getOriginal($state_column),
+                    'to_state' => $model->{$state_column},
+                    'description' => $description,
+                    'custom_properties' => $custom_properties,
+                ]);
+            }
+
+            // Clear metadata after recording
+            $model->transitionMetadata = [];
+        });
+    }
+
+    /**
+     * Transition the model to a new state with optional metadata.
+     *
+     * This is a convenience method that sets the state and saves the model
+     * in a single call, while also allowing you to provide description and
+     * custom properties for the transition history.
+     *
+     * @param  BackedEnum  $state  The new state to transition to
+     * @param  string|null  $description  Optional description of the transition
+     * @param  array|null  $custom_properties  Optional custom properties to store with the transition
+     * @return bool True if the model was successfully saved
+     */
+    public function stateTransitionTo(
+        BackedEnum $state,
+        ?string $description = null,
+        ?array $custom_properties = null
+    ): bool {
+        $state_column = config('model-state-transitions.transitionable_state_column');
+
+        $this->{$state_column} = $state;
+
+        $this->setTransitionMetadata($description, $custom_properties);
+
+        return $this->save();
+    }
+
+    /**
+     * Set metadata for the next state transition.
+     *
+     * This allows you to provide description and custom properties that will
+     * be recorded when the state changes and the model is saved.
+     *
+     * @param  string|null  $description  Optional description of the transition
+     * @param  array|null  $custom_properties  Optional custom properties to store
+     * @return $this
+     */
+    public function setTransitionMetadata(
+        ?string $description = null,
+        ?array $custom_properties = null
+    ): static {
+        if (filled($description)) {
+            $this->transitionMetadata['description'] = $description;
+        }
+
+        if (filled($custom_properties)) {
+            $this->transitionMetadata['custom_properties'] = $custom_properties;
+        }
+
+        return $this;
+    }
+
     /**
      * Get the transition history for the model.
      *
