@@ -8,13 +8,15 @@ Manage state transitions for your Laravel models with role-based access control 
 
 ## Features
 
-- Define valid state transitions for any Eloquent model
-- Role-based access control (RBAC) for transitions
-- Automatic transition history tracking with audit trail
-- Type-safe enum support for states
-- Polymorphic relationships for flexible model support
-- Custom properties and descriptions for each transition
-- Query available transitions based on user permissions
+- **Define valid state transitions** for any Eloquent model
+- **Role-based access control (RBAC)** for transitions - users and roles can be authorized
+- **Automatic transition history tracking** with complete audit trail and user attribution
+- **Type-safe enum support** – automatic casting between database values and BackedEnum instances
+- **Polymorphic relationships** for flexible model support
+- **Custom properties and descriptions** for each transition with metadata support
+- **Query available transitions** based on current state and user permissions
+- **Convenience methods** for state transitions with metadata (`stateTransitionTo()`, `setTransitionMetadata()`)
+- **Automatic user tracking** via EloquentBlameable integration
 
 ## Installation
 
@@ -67,22 +69,31 @@ enum PaymentStateEnum: string
 ### 2. Add Trait to Your Model
 
 ```php
-use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateTransitions;
+use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateTransitions as HasStateTransitionsConcern;
 use Jenishev\Laravel\ModelStateTransitions\Contracts\HasStateTransitions as HasStateTransitionsContract;
 
 class Payment extends Model implements HasStateTransitionsContract
 {
-    use HasStateTransitions;
+    use HasStateTransitionsConcern;
 
     protected $fillable = [
         // ...
         'state'
     ];
 
-    // Note: override if using custom enum naming
+    protected function casts(): array
+    {
+        return [
+            'state' => PaymentStateEnum::class,
+            // ... other casts
+        ];
+    }
+
+    // Override only if using custom enum naming convention,
+    // By default, expects: App\Enums\{ModelName}StateEnum
     public static function resolveStateEnum(): string
     {
-        return \App\Enums\PaymentStateEnum::class;
+        return PaymentStateEnum::class;
     }
 }
 ```
@@ -92,19 +103,84 @@ class Payment extends Model implements HasStateTransitionsContract
 ```php
 use Jenishev\Laravel\ModelStateTransitions\Models\Transition;
 
-// Create a transition
+// Create a transition definition
 $transition = Transition::create([
-    'model_type' => \App\Models\Payment::class,
-    'from_state' => 'pending',
-    'to_state' => 'paid',
+    'model_type' => Payment::class,
+    'from_state' => PaymentStateEnum::Pending,
+    'to_state' => PaymentStateEnum::Paid,
 ]);
 
-// Attach to users/roles
-$transition->users()->attach($user_id);
-$transition->roles()->attach($role_id);
+// Authorize specific users
+$transition->users()->attach($userId);
+
+// Authorize by role
+$transition->roles()->attach($roleId);
+
+// Or authorize multiple at once
+$transition->users()->attach([$userId1, $userId2]);
+$transition->roles()->attach([$adminRoleId, $managerRoleId]);
+```
+
+### 4. Use in Your Application
+
+```php
+// Check available transitions for current user
+$availableTransitions = $payment->transitions()->get();
+
+// Perform transition with metadata
+$payment->stateTransitionTo(
+    state: PaymentStateEnum::Paid,
+    description: 'Payment confirmed'
+);
+
+// View history
+foreach ($payment->transitionHistory as $history) {
+    echo "{$history->from_state->value} → {$history->to_state->value} by user {$history->creator->name}";
+    // OR
+    // echo "{$history->from_state->label()} → {$history->to_state->label()}";
+}
 ```
 
 ## Usage
+
+### Performing State Transitions
+
+The package provides multiple ways to transition between states:
+
+#### Simple State Change (Auto-tracked)
+
+```php
+// Direct state change - automatically tracked in history
+$payment->state = PaymentStateEnum::Paid;
+$payment->save();
+```
+
+#### Transition with Metadata (Recommended)
+
+```php
+// Use stateTransitionTo() for convenience - transitions and saves in one call
+$payment->stateTransitionTo(
+    state: PaymentStateEnum::Paid,
+    description: 'Payment approved by manager',
+    custom_properties: [
+        'approved_by' => $manager->id,
+        'approval_method' => 'manual',
+        'notes' => 'All documents verified'
+    ]
+);
+```
+
+#### Set Metadata Before Saving
+
+```php
+// Set metadata first, then update the state
+$payment->setTransitionMetadata(
+    description: 'Payment rejected due to insufficient funds',
+    custom_properties: ['reason_code' => 'INSUFFICIENT_FUNDS']
+);
+$payment->state = PaymentStateEnum::Rejected;
+$payment->save();
+```
 
 ### Get Available Transitions
 
@@ -115,21 +191,10 @@ $payment->transitions()->get();
 // For specific user
 $payment->transitions($user)->get();
 
-// Check if transition exists
+// Check if a specific transition exists
 $payment->transitions()
-    ->where('to_state', 'paid')
+    ->where('to_state', PaymentStateEnum::Paid)
     ->exists();
-```
-
-### Record Transition History
-
-```php
-$payment->transitionHistory()->create([
-    'from_state' => PaymentStateEnum::Pending,
-    'to_state' => PaymentStateEnum::Paid,
-    'description' => '...',
-    // 'custom_properties' => [...],
-]);
 ```
 
 ### Query History
@@ -142,7 +207,55 @@ $payment->transitionHistory;
 $payment->transitionHistory()->latest()->first();
 
 // Filter by state
-TransitionHistory::where('to_state', 'paid')->get();
+$payment->transitionHistory()
+    ->where('to_state', PaymentStateEnum::Paid)
+    ->get();
+
+// Access enum values
+$history = $payment->transitionHistory()->latest()->first();
+$history->from_state; // Returns PaymentStateEnum::Pending
+$history->to_state;   // Returns PaymentStateEnum::Paid
+
+// Access metadata
+$history->description;
+$history->custom_properties; // Array of custom data
+$history->created_by; // User ID who made the transition
+```
+
+## Advanced Usage
+
+### Attaching Transitions to Users/Roles
+
+To query available transitions from the user or role side, add the `HasAttachedTransitions` trait:
+
+```php
+use Jenishev\Laravel\ModelStateTransitions\Concerns\HasAttachedTransitions;
+
+class User extends Authenticatable
+{
+    use HasAttachedTransitions;
+    
+    // ... existing code
+}
+
+class Role extends Model
+{
+    use HasAttachedTransitions;
+    
+    // ... existing code
+}
+```
+
+This enables:
+```php
+// Get all transitions available to a user
+$user->transitions;
+
+// Attach a transition to a user
+$user->transitions()->attach($transitionId);
+
+// Check if a user has a specific transition
+$user->transitions()->where('to_state', 'approved')->exists();
 ```
 
 ## Configuration
@@ -150,9 +263,15 @@ TransitionHistory::where('to_state', 'paid')->get();
 The package provides sensible defaults out of the box. You can customize the behavior by editing the published configuration file at `config/model-state-transitions.php`.
 
 Key configuration options include:
-- Database table names for transitions, history, and pivot tables
-- The column name used for storing state on your models
-- Related model classes
+
+- **`transitions_table`** - Table storing state transition definitions (default: `transitions`)
+- **`transition_history_table`** - Audit trail table (default: `transition_history`)
+- **`pivot_table`** - User/Role authorization pivot table (default: `model_has_transitions`)
+- **`transitionable_state_column`** - Column name on your models (default: `state`)
+- **`transition_model`** - Transition model class (customizable)
+- **`transition_history_model`** - History model class (customizable)
+- **`role_model`** - Your application's Role model (customizable)
+- **`user_model`** - Your application's User model (customizable)
 
 Refer to the config file for detailed documentation on each option.
 
@@ -160,6 +279,8 @@ Refer to the config file for detailed documentation on each option.
 
 ```bash
 composer test
+composer format
+composer analyse
 ```
 
 ## Changelog
