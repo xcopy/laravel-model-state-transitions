@@ -1,6 +1,6 @@
 <?php
 
-namespace Jenishev\Laravel\ModelStateTransitions\Tests\Feature;
+namespace Jenishev\Laravel\ModelStateTransitions\Tests\Unit\Models;
 
 use Jenishev\Laravel\ModelStateTransitions\Models\TransitionHistory;
 use Workbench\App\Enums\PaymentStateEnum;

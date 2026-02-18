@@ -1,6 +1,6 @@
 <?php
 
-namespace Jenishev\Laravel\ModelStateTransitions\Tests\Feature;
+namespace Jenishev\Laravel\ModelStateTransitions\Tests\Unit\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
