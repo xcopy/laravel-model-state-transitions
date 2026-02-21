@@ -2,7 +2,6 @@
 
 namespace Jenishev\Laravel\ModelStateTransitions;
 
-use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -25,10 +24,22 @@ class ModelStateTransitionsServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-model-state-transitions')
             ->hasConfigFile()
-            ->hasMigration('create_model_state_transitions_tables')
-            ->hasInstallCommand(function (InstallCommand $command) {
-                $command->publishConfigFile();
-                $command->publishMigrations();
-            });
+            ->hasMigration('create_model_state_transitions_tables');
+    }
+
+    public function packageBooted(): void
+    {
+        if ($this->app->runningInConsole()) {
+            foreach (['config', 'migrations'] as $key) {
+                $group = "model-state-transitions-$key";
+
+                $this->publishes(
+                    static::pathsToPublish(self::class, $group),
+                    $key
+                );
+
+                unset(static::$publishGroups[$group]);
+            }
+        }
     }
 }

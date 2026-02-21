@@ -36,18 +36,11 @@ Manage state transitions for your Laravel models with role-based access control 
 }
 ```
 
-Run the installation command (publishes config and migrations):
+Run the installation commands:
 
 ```bash
-php artisan model-state-transitions:install
-php artisan migrate
-```
-
-Or publish manually:
-
-```bash
-php artisan vendor:publish --tag="model-state-transitions-migrations"
-php artisan vendor:publish --tag="model-state-transitions-config"
+php artisan vendor:publish --provider="Jenishev\Laravel\ModelStateTransitions\ModelStateTransitionsServiceProvider" --tag=config
+php artisan vendor:publish --provider="Jenishev\Laravel\ModelStateTransitions\ModelStateTransitionsServiceProvider" --tag=migrations
 php artisan migrate
 ```
 
