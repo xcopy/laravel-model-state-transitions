@@ -136,20 +136,7 @@ trait HasStateTransitions
     }
 
     /**
-     * Get the transition history for the model.
-     *
-     * Returns all recorded state transitions that have occurred on this model,
-     * ordered by creation date. Each history record includes the previous state,
-     * new state, timestamp, and optional custom properties.
-     *
-     * Example usage:
-     * ```php
-     * // Get all transitions for an order
-     * $order->transitionHistory;
-     *
-     * // Get the latest transition
-     * $order->transitionHistory()->latest()->first();
-     * ```
+     * {@inheritDoc}
      */
     public function transitionHistory(): MorphMany
     {
@@ -159,26 +146,7 @@ trait HasStateTransitions
     }
 
     /**
-     * Get the available transitions for the given user.
-     *
-     * Queries and returns all valid state transitions from the model's current
-     * state that the specified user (or authenticated user) is authorized to
-     * perform. Authorization is determined by checking if the user or any of
-     * their roles have been assigned the transition.
-     *
-     * Example usage:
-     * ```php
-     * // Get transitions for current authenticated user
-     * $order->transitions()->get();
-     *
-     * // Get transitions for a specific user
-     * $order->transitions($user)->get();
-     *
-     * // Check if a user can transition to a specific state
-     * $order->transitions()->where('to_state', 'approved')->exists();
-     * ```
-     *
-     * @param  Authenticatable|null  $user  The user to check permissions for (defaults to authenticated user)
+     * {@inheritDoc}
      */
     public function transitions(?Authenticatable $user = null): EloquentBuilder
     {
@@ -219,26 +187,7 @@ trait HasStateTransitions
     }
 
     /**
-     * Resolve the state enum for the model.
-     *
-     * Returns the fully qualified class name of the BackedEnum that represents
-     * valid states for this model. By default, it follows the convention of
-     * `App\Enums\{ModelName}StateEnum` (e.g., `App\Enums\OrderStateEnum` for
-     * the `Order` model).
-     *
-     * Override this method to use a custom enum class or different naming convention.
-     *
-     * Example override:
-     * ```php
-     * public static function resolveStateEnum(): string
-     * {
-     *     return \App\Enums\CustomStateEnum::class;
-     * }
-     * ```
-     *
-     * @return class-string<BackedEnum> The fully qualified enum class name
-     *
-     * @throws RuntimeException If the resolved enum class does not exist
+     * {@inheritDoc}
      */
     public static function resolveStateEnum(): string
     {
