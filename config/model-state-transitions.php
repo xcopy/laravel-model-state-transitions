@@ -1,5 +1,8 @@
 <?php
 
+use Jenishev\Laravel\ModelStateTransitions\Models\Transition;
+use Jenishev\Laravel\ModelStateTransitions\Models\TransitionHistory;
+
 return [
 
     /*
@@ -65,7 +68,7 @@ return [
     |
     */
 
-    'transition_model' => Jenishev\Laravel\ModelStateTransitions\Models\Transition::class,
+    'transition_model' => Transition::class,
     // 'transition_model' => App\Models\Transition::class,
 
     /*
@@ -79,7 +82,7 @@ return [
     |
     */
 
-    'transition_history_model' => Jenishev\Laravel\ModelStateTransitions\Models\TransitionHistory::class,
+    'transition_history_model' => TransitionHistory::class,
     // 'transition_history_model' => App\Models\TransitionHistory::class,
 
     /*
