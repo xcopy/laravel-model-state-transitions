@@ -2,6 +2,7 @@
 
 namespace Jenishev\Laravel\ModelStateTransitions\Models;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Jenishev\Laravel\ModelStateTransitions\Concerns\HasStateAttributes;
@@ -104,5 +105,17 @@ class Transition extends Model
             table: $config['pivot_table'],
             foreignPivotKey: 'transition_id'
         );
+    }
+
+    /**
+     * Determine whether this transition can be performed on the given model.
+     *
+     * This method acts as an additional runtime check beyond user/role authorization.
+     * It is intended to be overridden in subclasses to implement custom business logic
+     * (e.g., validating model state preconditions, enforcing time-based rules, etc.).
+     */
+    public function canTransit(HasStateTransitions $model, ?Authenticatable $user = null): bool
+    {
+        return true;
     }
 }
