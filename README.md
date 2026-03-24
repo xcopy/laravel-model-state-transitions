@@ -23,7 +23,7 @@ Manage state transitions for your Laravel models with role-based access control 
 **Note:** This package is not yet available on Packagist. You must add it to your `composer.json` manually.
 
 ```
-composer require xcopy/laravel-model-state-transitions
+composer require xcopy/laravel-model-state-transitions:dev-main
 ```
 
 Run the installation commands:
